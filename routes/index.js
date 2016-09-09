@@ -4,7 +4,7 @@ var crypto = require('crypto'),
 
 module.exports = function(app) {
 	app.get('/', function (req, res){
-		Post.get(null, function (err,posts){
+		Post.getAll(null, function (err,posts){
 			if(err){
 				posts =[];
 			}
@@ -89,7 +89,7 @@ module.exports = function(app) {
 			}
 			//name and password are correct then store info into session
 			req.session.user = user;
-			req.flash('success', 'Successfully login!');
+			req.flash('success', 'Login Successfully !');
 			res.redirect('/');
 		});
 	});
@@ -111,15 +111,113 @@ module.exports = function(app) {
 				req.flash('error', err);
 				return res.redirect('/');
 			}
-			req.flash('success', 'Successfully post !');
+			req.flash('success', 'Post Successfully !');
 			res.redirect('/');
 		})
 	});
 	app.get('/logout', checkLogin);
 	app.get('/logout', function (req, res){
 		req.session.user = null;
-		req.flash('success', 'Successfully logout!');
+		req.flash('success', 'Logout Successfully !');
 		res.redirect('/');
+	});
+
+	app.get('/upload', checkLogin);
+	app.get('/upload', function (req, res){
+		res.render('upload', {
+			title: 'upload file',
+			user: req.session.user,
+			success: req.flash('success').toString(),
+			error: req.flash('error').toString()
+		});
+	});
+
+	app.post('/upload', checkLogin)
+	app.post('/upload', function (req, res){
+		req.flash('success','Upload file Successfully !');
+		res.redirect('/upload');
+	});
+
+	app.get('/u/:name', function (req, res){
+		User.get(req.params.name, function (err, user){
+			if(!user) {
+				req.flash('error', 'user does not exist !');
+				return res.redirect('/');
+			}
+			Post.getAll(null, function (err,posts){
+				if(err){
+					req.flash('error', err);
+					return res.redirect('/');
+				}
+				res.render('user', { 
+					title: user.name,
+					user: req.session.user,
+					posts: posts,
+					success: req.flash('success').toString(),
+					error: req.flash('error').toString()
+				});
+			});
+		});
+	});
+
+	app.get('/u/:name/:day/:title', function (req, res){
+		Post.getOne(req.params.name,req.params.day,req.params.title, function (err,post){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('/');
+			}
+			res.render('article', { 
+				title: req.params.title,
+				user: req.session.user,
+				post: post,
+				success: req.flash('success').toString(),
+				error: req.flash('error').toString()
+			});
+		});
+	});
+
+	app.get('/edit/:name/:day/:title', checkLogin);
+	app.get('edit/:name/:day/:title', function (req, res){
+		Post.edit(req.params.name,req.params.day,req.params.title, function (err,post){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('back');
+			}
+			res.render('edit', { 
+				title: 'Edit',
+				user: req.session.user,
+				post: post,
+				success: req.flash('success').toString(),
+				error: req.flash('error').toString()
+			});
+		});
+	});
+
+	app.post('/edit/:name/:day/:title', checkLogin);
+	app.post('/edit/:name/:day/:title', function (req, res){
+		var currentUser = req.session.user;
+		Post.update(currentUser.name,req.params.day,req.params.title, req.body.post, function (err){
+			var url = encodeURI('/u/' + req.params.name + '/' + req.params.day + '/' + req.params.title);
+			if(err){
+				req.flash('error', err);
+				return res.redirect(url);
+			}
+			req.flash('success', "Update Successfully !");
+			res.redirect(url);
+		});
+	});
+
+	app.get('/remove/:name/:day/:title', checkLogin);
+	app.get('/remove/:name/:day/:title', function (req, res){
+		var currentUser = req.session.user;
+		Post.remove(currentUser.name,req.params.day,req.params.title, function (err){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('back');
+			}
+			req.flash('success', "Remove Successfully !");
+			res.redirect('/');
+		});
 	});
 
 	function checkLogin(req, res, next){
@@ -132,7 +230,7 @@ module.exports = function(app) {
 
 	function checkNotLogin(req, res, next){
 		if(req.session.user){
-			req.flash('error', 'You have lready logged in !');
+			req.flash('error', 'You have already logged in !');
 			res.redirect('back');
 		}
 		next();
