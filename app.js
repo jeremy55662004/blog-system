@@ -10,6 +10,7 @@ var MongoStore = require('connect-mongo')(session);
 var routes = require('./routes/index');
 var settings = require('./settings');
 var flash = require('connect-flash');
+var multer = require('multer');
 
 var fs = require('fs');
 
@@ -25,6 +26,12 @@ app.set('view engine', 'ejs');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(multer({
+  dest: './public/images',
+  rename: function (fieldname, filename){
+    return filename;
+  }
+}));
 
 app.use(cookieParser());
 app.use(session({
