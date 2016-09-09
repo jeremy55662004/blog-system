@@ -1,4 +1,5 @@
-var mongodb = require('./db');
+var mongodb = require('./db'),
+	markdown = require('markdown').markdown;
 
 function Post(name, title, post){
 	this.name = name;
@@ -55,8 +56,8 @@ Post.prototype.save = function (callback){
 	});
 };
 
-//read article and other information
-Post.get = function(name, callback){
+//read article and other information from one person or people
+Post.getAll = function(name, callback){
 	//open database
 	mongodb.open(function(err,db){
 		if(err){
@@ -81,7 +82,130 @@ Post.get = function(name, callback){
 				if(err){
 					return callback(err);
 				}
+				docs.forEach(function (doc){
+					doc.post = markdown.toHTML(doc.post);
+				});
 				callback(null, docs);
+			});
+		});
+	});
+};
+
+
+//Base on user name, date to get an article
+Post.getOne = function(name, day, title, callback){
+	//open database
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//use user name, post date and article's name to query
+			collection.findOne({
+				"name": name,
+				"time.day": day,
+				"title": title
+			}, function (err, doc){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				doc.post = markdown.toHTML(doc.post);
+				callback(null, doc); //return an article
+			});
+		});
+	});
+};
+
+Post.edit = function (name, day, title, callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//use user name, post date and article's name to query
+			collection.findOne({
+				"name": name,
+				"time.day": day,
+				"title": title
+			}, function (err, doc){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null, doc); //return an article
+			});
+		});
+	});
+};
+
+Post.update = function (name, day, title, post, callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//update article
+			collection.update({
+				"name": name,
+				"time.day": day,
+				"title": title
+			}, {
+				$set: {post: post}
+			}, function (err){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null);
+			});
+		});
+	});
+};
+
+Post.remove = function (name, day, title, callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//update article
+			collection.remove({
+				"name": name,
+				"time.day": day,
+				"title": title
+			}, {
+				w: 1
+			}, function (err){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null);
 			});
 		});
 	});
