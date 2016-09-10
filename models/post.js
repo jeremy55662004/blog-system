@@ -22,13 +22,14 @@ Post.prototype.save = function (callback){
 		minute: date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + "" + 
 		date.getHours() + ":" + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes())
 
-	}
+	};
 	//file which need to store in database
 	var post = {
 		name: this.name,
 		time: time,
 		title: this.title,
-		post: this.post
+		post: this.post,
+		comments: []
 	};
 
 	//open database
@@ -116,7 +117,14 @@ Post.getOne = function(name, day, title, callback){
 				if(err){
 					return callback(err);
 				}
-				doc.post = markdown.toHTML(doc.post);
+				if(doc){
+					doc.post = markdown.toHTML(doc.post);
+					if(doc.comments){
+						doc.comments.forEach(function (comment){
+							comment.content = markdown.toHTML(comment.content);
+						});
+					}
+				}
 				callback(null, doc); //return an article
 			});
 		});

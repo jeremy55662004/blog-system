@@ -1,6 +1,7 @@
 var crypto = require('crypto'),
 	User = require('../models/user.js');
 	Post = require('../models/post.js');
+	Comment = require('../models/comment.js')
 
 module.exports = function(app) {
 	app.get('/', function (req, res){
@@ -144,7 +145,7 @@ module.exports = function(app) {
 				req.flash('error', 'user does not exist !');
 				return res.redirect('/');
 			}
-			Post.getAll(null, function (err,posts){
+			Post.getAll(user.name, function (err,posts){
 				if(err){
 					req.flash('error', err);
 					return res.redirect('/');
@@ -161,7 +162,7 @@ module.exports = function(app) {
 	});
 
 	app.get('/u/:name/:day/:title', function (req, res){
-		Post.getOne(req.params.name,req.params.day,req.params.title, function (err,post){
+		Post.getOne(req.params.name, req.params.day, req.params.title, function (err,post){
 			if(err){
 				req.flash('error', err);
 				return res.redirect('/');
@@ -176,8 +177,32 @@ module.exports = function(app) {
 		});
 	});
 
+	app.post('/u/:name/:day/:title', function (req,res){
+		var date = new Date(),
+			time = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + "" + 
+					date.getHours() + ":" + (date.getMinutes() < 10 ? '0' + 
+					date.getMinutes() : date.getMinutes());
+		var comment = {
+			name: req.body.name,
+			email: req.body.email,
+			website: req.body.website,
+			time: time,
+			content: req.body.content
+		};
+		var newComment = new Comment(req.params.name, req.params.day, req.params.title, comment);
+		newComment.save(function (err){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('back');
+			}
+			req.flash('success', 'Leave message Successfully !');
+			res.redirect('back');
+		});
+
+	});
+
 	app.get('/edit/:name/:day/:title', checkLogin);
-	app.get('edit/:name/:day/:title', function (req, res){
+	app.get('/edit/:name/:day/:title', function (req, res){
 		Post.edit(req.params.name,req.params.day,req.params.title, function (err,post){
 			if(err){
 				req.flash('error', err);
