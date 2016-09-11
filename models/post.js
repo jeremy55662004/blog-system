@@ -58,7 +58,7 @@ Post.prototype.save = function (callback){
 };
 
 //read article and other information from one person or people
-Post.getAll = function(name, callback){
+Post.getTen = function(name, page, callback){
 	//open database
 	mongodb.open(function(err,db){
 		if(err){
@@ -75,18 +75,24 @@ Post.getAll = function(name, callback){
 			if (name){
 				query.name = name;
 			}
-			//use query object to find article
-			collection.find(query).sort({
-				time: -1
-			}).toArray(function (err, docs){
-				mongodb.close();
-				if(err){
-					return callback(err);
-				}
-				docs.forEach(function (doc){
-					doc.post = markdown.toHTML(doc.post);
+			//use count to return the number of documents(total)
+			collection.count(query, function (err,total){
+				//use query object to find article
+				collection.find(query, {
+					skip: (page -1) * 10,
+					limit: 10
+				}).sort({
+					time: -1
+				}).toArray(function (err, docs){
+					mongodb.close();
+					if(err){
+						return callback(err);
+					}
+					docs.forEach(function (doc){
+						doc.post = markdown.toHTML(doc.post);
+					});
+					callback(null, docs, total);
 				});
-				callback(null, docs);
 			});
 		});
 	});
