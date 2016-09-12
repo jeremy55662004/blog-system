@@ -110,7 +110,8 @@ module.exports = function(app) {
 	app.post('/post', checkLogin);
 	app.post('/post', function (req, res){
 		var currentUser = req.session.user,
-			post = new Post(currentUser.name, req.body.title, req.body.post);
+			tags = [req.body.tag1,req.body.tag2,req.body.tag3],
+			post = new Post(currentUser.name, req.body.title, tags, req.body.post);
 		post.save(function (err){
 			if(err){
 				req.flash('error', err);
@@ -141,6 +142,54 @@ module.exports = function(app) {
 	app.post('/upload', function (req, res){
 		req.flash('success','Upload file Successfully !');
 		res.redirect('/upload');
+	});
+
+	app.get('/archive', function (req, res){
+		Post.getArchive(function (err,posts){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('/');
+			}
+			res.render('archive', { 
+				title: 'Save',
+				user: req.session.user,
+				posts: posts,
+				success: req.flash('success').toString(),
+				error: req.flash('error').toString()
+			});
+		});
+	});
+
+	app.get('/tags', function (req, res){
+		Post.getTags(function (err,posts){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('/');
+			}
+			res.render('tags', { 
+				title: 'Tag',
+				user: req.session.user,
+				posts: posts,
+				success: req.flash('success').toString(),
+				error: req.flash('error').toString()
+			});
+		});
+	});
+
+	app.get('/tags/:tag', function (req, res){
+		Post.getTag(req.params.tag, function (err,posts){
+			if(err){
+				req.flash('error', err);
+				return res.redirect('/');
+			}
+			res.render('tag', { 
+				title: 'TAG' + req.params.tag,
+				user: req.session.user,
+				posts: posts,
+				success: req.flash('success').toString(),
+				error: req.flash('error').toString()
+			});
+		});
 	});
 
 	app.get('/u/:name', function (req, res){
