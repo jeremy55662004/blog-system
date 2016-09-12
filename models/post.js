@@ -1,9 +1,10 @@
 var mongodb = require('./db'),
 	markdown = require('markdown').markdown;
 
-function Post(name, title, post){
+function Post(name, title, tags, post){
 	this.name = name;
 	this.title = title;
+	this.tags = tags;
 	this.post = post;
 }
 
@@ -28,6 +29,7 @@ Post.prototype.save = function (callback){
 		name: this.name,
 		time: time,
 		title: this.title,
+		tags: this.tags,
 		post: this.post,
 		comments: []
 	};
@@ -89,7 +91,9 @@ Post.getTen = function(name, page, callback){
 						return callback(err);
 					}
 					docs.forEach(function (doc){
-						doc.post = markdown.toHTML(doc.post);
+						if(doc.post){
+							doc.post = markdown.toHTML(doc.post);
+						}
 					});
 					callback(null, docs, total);
 				});
@@ -220,6 +224,94 @@ Post.remove = function (name, day, title, callback){
 					return callback(err);
 				}
 				callback(null);
+			});
+		});
+	});
+};
+
+Post.getArchive = function(callback){
+	//open database
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//return the arraies consist of documents which include name, time and title
+			collection.find({}, {
+				"name": 1,
+				"time": 1,
+				"title": 1
+			}).sort({
+				time: -1
+			}).toArray(function (err, docs){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null, docs);
+			});
+		});
+	});
+};
+
+Post.getTags = function(callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//use distinct to find different tags
+			collection.distinct("tags", function (err,docs) {
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null, docs);
+			});
+		});
+	});
+};
+
+Post.getTag = function(tag, callback){
+	//open database
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//find documents which has tag inside tags array
+			collection.find({
+				"tags": tag
+			}, {
+				"name": 1,
+				"time": 1,
+				"title": 1
+			}).sort({
+				time: -1
+			}).toArray(function (err, docs){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null, docs);
 			});
 		});
 	});
