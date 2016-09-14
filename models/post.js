@@ -1,8 +1,9 @@
 var mongodb = require('./db'),
 	markdown = require('markdown').markdown;
 
-function Post(name, title, tags, post){
+function Post(name, head, title, tags, post){
 	this.name = name;
+	this.head = head;
 	this.title = title;
 	this.tags = tags;
 	this.post = post;
@@ -27,11 +28,13 @@ Post.prototype.save = function (callback){
 	//file which need to store in database
 	var post = {
 		name: this.name,
+		head: this.head,
 		time: time,
 		title: this.title,
 		tags: this.tags,
 		post: this.post,
-		comments: []
+		comments: [],
+		pv: 0
 	};
 
 	//open database
@@ -123,11 +126,25 @@ Post.getOne = function(name, day, title, callback){
 				"time.day": day,
 				"title": title
 			}, function (err, doc){
-				mongodb.close();
 				if(err){
+					mongodb.close();
 					return callback(err);
 				}
 				if(doc){
+					
+					// when view one times then pv +1
+					collection.update({
+						"name": name,
+						"time.day": day,
+						"title": title
+					}, {
+						$inc: {"pv": 1}
+					}, function(err){
+						mongodb.close();
+						if(err){
+							return callback(err);
+						}
+					});
 					doc.post = markdown.toHTML(doc.post);
 					if(doc.comments){
 						doc.comments.forEach(function (comment){
@@ -300,6 +317,40 @@ Post.getTag = function(tag, callback){
 			//find documents which has tag inside tags array
 			collection.find({
 				"tags": tag
+			}, {
+				"name": 1,
+				"time": 1,
+				"title": 1
+			}).sort({
+				time: -1
+			}).toArray(function (err, docs){
+				mongodb.close();
+				if(err){
+					return callback(err);
+				}
+				callback(null, docs);
+			});
+		});
+	});
+};
+
+
+//use title to search posts
+Post.search = function(keyword, callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			var pattern = new RegExp(keyword, "i");
+			collection.find({
+				"title": pattern
 			}, {
 				"name": 1,
 				"time": 1,
