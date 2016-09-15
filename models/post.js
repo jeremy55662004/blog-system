@@ -34,6 +34,7 @@ Post.prototype.save = function (callback){
 		tags: this.tags,
 		post: this.post,
 		comments: [],
+		reprint_info: {},
 		pv: 0
 	};
 
@@ -228,19 +229,56 @@ Post.remove = function (name, day, title, callback){
 				mongodb.close();
 				return callback(err);
 			}
-			//update article
-			collection.remove({
+
+			collection.findOne({
 				"name": name,
 				"time.day": day,
 				"title": title
-			}, {
-				w: 1
-			}, function (err){
-				mongodb.close();
+			}, function (err,doc){
 				if(err){
+					mongodb.close();
 					return callback(err);
 				}
-				callback(null);
+				//if there is reprint_from then the article was repritned
+				var reprint_from = "";
+				if (doc.reprint_info.reprint_from){
+					reprint_from = doc.reprint_info.reprint_from;
+				}
+				if (reprint_from != ""){
+					// update oiginal article's reprint_to
+					collection.update({
+						"name": reprint_from.name,
+						"time.day": reprint_from.day,
+						"title": reprint_from.title
+					}, {
+						$pull: {
+							"reprint_info.reprint_to": {
+								"name": name,
+								"day": day,
+								"title": title
+							}
+						}
+						}, function (err){
+							if (err){
+								mongodb.close();
+								return callback(err);
+							}
+					});
+				}
+				//update article
+				collection.remove({
+					"name": name,
+					"time.day": day,
+					"title": title
+				}, {
+					w: 1
+				}, function (err){
+					mongodb.close();
+					if(err){
+						return callback(err);
+					}
+					callback(null);
+				});
 			});
 		});
 	});
@@ -363,6 +401,84 @@ Post.search = function(keyword, callback){
 					return callback(err);
 				}
 				callback(null, docs);
+			});
+		});
+	});
+};
+
+Post.reprint = function(reprint_from, reprint_to, callback){
+	mongodb.open(function(err,db){
+		if(err){
+			return callback(err);
+		}
+
+		//read posts set
+		db.collection('posts', function(err, collection){
+			if(err){
+				mongodb.close();
+				return callback(err);
+			}
+			//find the origin document which is reprinted
+			collection.findOne({
+				"name": reprint_from.name,
+				"time.day": reprint_from.day,
+				"title": reprint_from.title
+			}, function (err, doc){
+				if(err){
+					mongodb.close();
+					return callback(err);
+				}
+
+				var date = new Date();
+				var time = {
+					date: date,
+					year: date.getFullYear(),
+					month: date.getFullYear() + "-" + (date.getMonth() + 1),
+					day: date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate(),
+					minute: date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + "" + 
+					date.getHours() + ":" + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes())
+
+				}
+
+				//delete origin _id
+				delete doc._id;
+
+				doc.name = reprint_to.name;
+				doc.head = reprint_to.head;
+				doc.time = time;
+				doc.title = (doc.title.search(/Reprint/) > -1) ? doc.title : "[Reprint]" + doc.title;
+				doc.comments = [];
+				doc.reprint_info = {"reprint_from": reprint_from};
+				doc.pv = 0;
+
+				collection.update({
+					"name": reprint_from.name,
+					"time.day": reprint_from.day,
+					"title": reprint_from.title
+				}, {
+					$push: {
+						"reprint_info.reprint_to":{
+							"name": doc.name,
+							"day": time.day,
+							"title": doc.title
+						}
+					}
+				}, function(err){
+					if(err){
+						mongodb.close();
+						return callback(err);
+					}
+				});
+
+				collection.insert(doc,{
+					safe: true
+				}, function (err,post){
+					mongodb.close();
+					if(err){
+						return callback(err);
+					}
+					callback(err, post[0]);
+				});			
 			});
 		});
 	});
