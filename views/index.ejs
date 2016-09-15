@@ -11,9 +11,21 @@
 <a class="tag" href="/tags/<%= tag %>"><%= tag %></a>
 <% } %>
 <% }) %>
+<% if (post.reprint_info.reprint_from) { %>
+<br><a href="/u/<%= post.reprint_info.reprint_from.name %>/<%= post.reprint_info.reprint_from.day %>/<%= post.reprint_info.reprint_from.title %>"> Original Link </a>
+<% } %>
 </p>
 <p><%- post.post %></p>
-<p class="info">Page view: <%= post.pv %> | Number of Comments: <%= post.comments.length %></p>
+<p class="info">
+	Page view: <%= post.pv %> | 
+	Number of Comments: <%= post.comments.length %> | 
+	Reprint:
+		<% if (post.reprint_info.reprint_to) { %>
+			<%= post.reprint_info.reprint_to.length %>
+		<% } else { %>
+			<%= 0 %>
+		<% } %>
+</p>
 <% }) %>
 <%- include paging %>
 <%- include footer %>
