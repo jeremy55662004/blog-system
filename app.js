@@ -13,6 +13,8 @@ var flash = require('connect-flash');
 var multer = require('multer');
 
 var fs = require('fs');
+var accessLog = fs.createWriteStream('access.log', {flags: 'a'});
+var errorLog = fs.createWriteStream('error.log', {flags: 'a'});
 
 var app = express();
 
@@ -24,6 +26,7 @@ app.set('view engine', 'ejs');
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
 app.use(logger('dev'));
+app.use(logger({stream: accessLog}));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(multer({
@@ -47,6 +50,12 @@ app.use(session({
 
 app.use(flash());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(function (err,req, res, next){
+  var meta = '[' + new Date() + ']' + req.url + '\n';
+  errorLog.write(meta + err.stack + '\n');
+  next();
+});
 
 
 routes(app);
