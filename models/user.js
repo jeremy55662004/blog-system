@@ -1,5 +1,6 @@
-var mongodb = require('./db');
+var mongodb = require('mongodb').Db;
 var crypto = require('crypto');
+var settings = require('../settings');
 
 function User(user){
 	this.name = user.name;
@@ -24,21 +25,21 @@ User.prototype.save = function(callback){
 	};
 
 	//open database
-	mongodb.open(function(err, db){
+	mongodb.connect(settings.url, function(err, db){
 		if(err){
 			return callback(err);
 		}
 		//read sets of users
 		db.collection('users', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//insert information of users into users' set
 			collection.insert(user,{
 				safe: true
 			}, function(err, user){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -51,21 +52,21 @@ User.prototype.save = function(callback){
 //read information of user
 User.get = function(name, callback){
 	//open database
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
 		//read set of users
 		db.collection('users', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//search the value of user(key=name) is name
 			collection.findOne({
 				name:name
 			}, function(err,user){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}

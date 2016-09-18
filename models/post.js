@@ -1,5 +1,6 @@
-var mongodb = require('./db'),
+var mongodb = require('mongodb').Db,
 	markdown = require('markdown').markdown;
+var settings = require('../settings');
 
 function Post(name, head, title, tags, post){
 	this.name = name;
@@ -39,21 +40,21 @@ Post.prototype.save = function (callback){
 	};
 
 	//open database
-	mongodb.open(function (err, db){
+	mongodb.connect(settings.url, function (err, db){
 		if(err){
 			return callback(err);
 		}
 		// read posts set
 		db.collection('posts', function (err,collection){
 			if (err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//insert into posts set
 			collection.insert(post, {
 				safe: true
 			}, function (err){
-				mongodb.close();
+				db.close();
 				if (err){
 					return callback(err);
 				}
@@ -66,7 +67,7 @@ Post.prototype.save = function (callback){
 //read article and other information from one person or people
 Post.getTen = function(name, page, callback){
 	//open database
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -74,7 +75,7 @@ Post.getTen = function(name, page, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			var query = {};
@@ -90,7 +91,7 @@ Post.getTen = function(name, page, callback){
 				}).sort({
 					time: -1
 				}).toArray(function (err, docs){
-					mongodb.close();
+					db.close();
 					if(err){
 						return callback(err);
 					}
@@ -110,7 +111,7 @@ Post.getTen = function(name, page, callback){
 //Base on user name, date to get an article
 Post.getOne = function(name, day, title, callback){
 	//open database
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -118,7 +119,7 @@ Post.getOne = function(name, day, title, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//use user name, post date and article's name to query
@@ -128,7 +129,7 @@ Post.getOne = function(name, day, title, callback){
 				"title": title
 			}, function (err, doc){
 				if(err){
-					mongodb.close();
+					db.close();
 					return callback(err);
 				}
 				if(doc){
@@ -141,7 +142,7 @@ Post.getOne = function(name, day, title, callback){
 					}, {
 						$inc: {"pv": 1}
 					}, function(err){
-						mongodb.close();
+						db.close();
 						if(err){
 							return callback(err);
 						}
@@ -160,7 +161,7 @@ Post.getOne = function(name, day, title, callback){
 };
 
 Post.edit = function (name, day, title, callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -168,7 +169,7 @@ Post.edit = function (name, day, title, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//use user name, post date and article's name to query
@@ -177,7 +178,7 @@ Post.edit = function (name, day, title, callback){
 				"time.day": day,
 				"title": title
 			}, function (err, doc){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -188,7 +189,7 @@ Post.edit = function (name, day, title, callback){
 };
 
 Post.update = function (name, day, title, post, callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -196,7 +197,7 @@ Post.update = function (name, day, title, post, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//update article
@@ -207,7 +208,7 @@ Post.update = function (name, day, title, post, callback){
 			}, {
 				$set: {post: post}
 			}, function (err){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -218,7 +219,7 @@ Post.update = function (name, day, title, post, callback){
 };
 
 Post.remove = function (name, day, title, callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -226,7 +227,7 @@ Post.remove = function (name, day, title, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 
@@ -236,7 +237,7 @@ Post.remove = function (name, day, title, callback){
 				"title": title
 			}, function (err,doc){
 				if(err){
-					mongodb.close();
+					db.close();
 					return callback(err);
 				}
 				//if there is reprint_from then the article was repritned
@@ -260,7 +261,7 @@ Post.remove = function (name, day, title, callback){
 						}
 						}, function (err){
 							if (err){
-								mongodb.close();
+								db.close();
 								return callback(err);
 							}
 					});
@@ -273,7 +274,7 @@ Post.remove = function (name, day, title, callback){
 				}, {
 					w: 1
 				}, function (err){
-					mongodb.close();
+					db.close();
 					if(err){
 						return callback(err);
 					}
@@ -286,7 +287,7 @@ Post.remove = function (name, day, title, callback){
 
 Post.getArchive = function(callback){
 	//open database
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -294,7 +295,7 @@ Post.getArchive = function(callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//return the arraies consist of documents which include name, time and title
@@ -305,7 +306,7 @@ Post.getArchive = function(callback){
 			}).sort({
 				time: -1
 			}).toArray(function (err, docs){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -316,7 +317,7 @@ Post.getArchive = function(callback){
 };
 
 Post.getTags = function(callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -324,12 +325,12 @@ Post.getTags = function(callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//use distinct to find different tags
 			collection.distinct("tags", function (err,docs) {
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -341,7 +342,7 @@ Post.getTags = function(callback){
 
 Post.getTag = function(tag, callback){
 	//open database
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -349,7 +350,7 @@ Post.getTag = function(tag, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//find documents which has tag inside tags array
@@ -362,7 +363,7 @@ Post.getTag = function(tag, callback){
 			}).sort({
 				time: -1
 			}).toArray(function (err, docs){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -375,7 +376,7 @@ Post.getTag = function(tag, callback){
 
 //use title to search posts
 Post.search = function(keyword, callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -383,7 +384,7 @@ Post.search = function(keyword, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			var pattern = new RegExp(keyword, "i");
@@ -396,7 +397,7 @@ Post.search = function(keyword, callback){
 			}).sort({
 				time: -1
 			}).toArray(function (err, docs){
-				mongodb.close();
+				db.close();
 				if(err){
 					return callback(err);
 				}
@@ -407,7 +408,7 @@ Post.search = function(keyword, callback){
 };
 
 Post.reprint = function(reprint_from, reprint_to, callback){
-	mongodb.open(function(err,db){
+	mongodb.connect(settings.url, function(err,db){
 		if(err){
 			return callback(err);
 		}
@@ -415,7 +416,7 @@ Post.reprint = function(reprint_from, reprint_to, callback){
 		//read posts set
 		db.collection('posts', function(err, collection){
 			if(err){
-				mongodb.close();
+				db.close();
 				return callback(err);
 			}
 			//find the origin document which is reprinted
@@ -425,7 +426,7 @@ Post.reprint = function(reprint_from, reprint_to, callback){
 				"title": reprint_from.title
 			}, function (err, doc){
 				if(err){
-					mongodb.close();
+					db.close();
 					return callback(err);
 				}
 
@@ -465,7 +466,7 @@ Post.reprint = function(reprint_from, reprint_to, callback){
 					}
 				}, function(err){
 					if(err){
-						mongodb.close();
+						db.close();
 						return callback(err);
 					}
 				});
@@ -473,7 +474,7 @@ Post.reprint = function(reprint_from, reprint_to, callback){
 				collection.insert(doc,{
 					safe: true
 				}, function (err,post){
-					mongodb.close();
+					db.close();
 					if(err){
 						return callback(err);
 					}
