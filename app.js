@@ -17,8 +17,6 @@ var accessLog = fs.createWriteStream('access.log', {flags: 'a'});
 var errorLog = fs.createWriteStream('error.log', {flags: 'a'});
 
 var app = express();
-var passport = require('passport'),
-    GithubStrategy = require('passport-github').Strategy;
 
 // view engine setup
 //app.set('port', process.env.PORT || 3000);
@@ -41,14 +39,13 @@ app.use(multer({
 app.use(cookieParser());
 app.use(session({
   secret: settings.cookieSecret,
-  //key: settings.db,                             //cookie name
+  key: settings.db,                             //cookie name
   cookie: {maxAge: 1000 * 60 * 60 * 24 * 30},   //30 days
-  //store: new MongoStore({
-    //db: settings.db,
-    //host: settings.host,
-    //port: settings.port
-  //})
-  url: settings.url
+  store: new MongoStore({
+    db: settings.db,
+    host: settings.host,
+    port: settings.port
+  })
 }));
 
 app.use(flash());
@@ -60,7 +57,6 @@ app.use(function (err,req, res, next){
   next();
 });
 
-app.use(passport.initialize());
 
 routes(app);
 
@@ -70,24 +66,14 @@ app.listen(app.get('port'), function(){
 });
 */
 
-
+module.exports = app;                           //exports app especially for bin/www
+/*
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   var err = new Error('Not Found');
   err.status = 404;
   next(err);
 });
-
-/*
-passport.use(new GithubStrategy({
-  clientID: process.env.YOUR_CLIENT_ID,
-  clientSecret: process.env.YOUR_CLIENT_SECRET,
-  callbackURL: "http://localhost:3000/login/github/callback"
-}, function(accessToken, refreshToken, profile, done) {
-  done(null,profile);
-}));
-*/
-
 
 // error handlers
 
@@ -113,5 +99,5 @@ app.use(function(err, req, res, next) {
   });
 });
 
-module.exports = app;                         //exports app especially for bin/www
-
+module.exports = app;
+*/
