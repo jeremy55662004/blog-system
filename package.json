@@ -20,7 +20,9 @@
     "markdown": "0.5.0",
     "multer": "0.1.6",
     "passport": "*",
-    "passport-github": "*"
+    "passport-github": "*",
+    "mongoose": "*",
+    "express-handlebars": "*"
   },
   "engines":{
     "node": "6.3.1"
