@@ -1,5 +1,18 @@
-var mongodb = require('./db');
 var crypto = require('crypto');
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/blog');
+
+var userSchema = new mongoose.Schema({
+	name: String,
+	password: String,
+	email: String,
+	head: String
+}, {
+	collection: 'users'
+});
+
+var userModel = mongoose.model('User', userSchema);
+
 
 function User(user){
 	this.name = user.name;
@@ -7,7 +20,6 @@ function User(user){
 	this.email = user.email;
 };
 
-module.exports = User;
 
 //store the information of users
 User.prototype.save = function(callback){
@@ -23,54 +35,25 @@ User.prototype.save = function(callback){
 		head: head
 	};
 
-	//open database
-	mongodb.open(function(err, db){
+	var newUser = new userModel(user);
+
+	newUser.save(function (err, user){
 		if(err){
 			return callback(err);
 		}
-		//read sets of users
-		db.collection('users', function(err, collection){
-			if(err){
-				mongodb.close();
-				return callback(err);
-			}
-			//insert information of users into users' set
-			collection.insert(user,{
-				safe: true
-			}, function(err, user){
-				mongodb.close();
-				if(err){
-					return callback(err);
-				}
-				callback(null, user[0]); //error is null and return user file 
-			});
-		});
+		callback(null, user);
 	});
 };
 
 //read information of user
 User.get = function(name, callback){
-	//open database
-	mongodb.open(function(err,db){
+
+	userModel.findOne({name:name}, function (err, user){
 		if(err){
 			return callback(err);
 		}
-		//read set of users
-		db.collection('users', function(err, collection){
-			if(err){
-				mongodb.close();
-				return callback(err);
-			}
-			//search the value of user(key=name) is name
-			collection.findOne({
-				name:name
-			}, function(err,user){
-				mongodb.close();
-				if(err){
-					return callback(err);
-				}
-				callback(null, user);
-			});
-		});
+		callback(null, user);
 	});
 };
+
+module.exports = User;
